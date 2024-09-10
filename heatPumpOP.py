@@ -54,36 +54,31 @@ class DoublyLinkedList:
         return None
 
 class Connection:
-    def __init__(self, start_node, end_node, conn_type='normal'):
+    def __init__(self, start_node, end_node, conn_type='normal', side='left'):
         self.start_node = start_node
         self.end_node = end_node
         self.conn_type = conn_type  # Type of connection: 'normal', 'pump', 'valve'
+        self.side = side  # Side of the connection: 'left' or 'right'
         self.style = dict(color='black', width=2)  # Default style for normal lines
 
     def draw_connection(self):
-        """Create shapes for connecting edges based on connection type."""
+        """Create shapes for connecting edges based on connection type and side."""
         line_shapes = []
 
         # Get arrow positions around nodes
-        start_bottom_left_tip, start_bottom_right_tip = self.start_node.arrow_positions[2], self.start_node.arrow_positions[3]
-        end_top_left_tip, end_top_right_tip = self.end_node.arrow_positions[0], self.end_node.arrow_positions[1]
+        if self.side == 'left':
+            start_tip = self.start_node.arrow_positions[2]  # bottom left tip
+            end_tip = self.end_node.arrow_positions[0]  # top left tip
+        else:
+            start_tip = self.start_node.arrow_positions[3]  # bottom right tip
+            end_tip = self.end_node.arrow_positions[1]  # top right tip
 
-        # Connect the bottom left arrow tip of the start node to the top left arrow tip of the end node
+        # Connect the chosen arrow tip of the start node to the end node
         line_shapes.append(
             dict(
                 type='line',
-                x0=start_bottom_left_tip[0], y0=start_bottom_left_tip[1],
-                x1=end_top_left_tip[0], y1=end_top_left_tip[1],
-                line=self.style
-            )
-        )
-
-        # Connect the bottom right arrow tip of the start node to the top right arrow tip of the end node
-        line_shapes.append(
-            dict(
-                type='line',
-                x0=start_bottom_right_tip[0], y0=start_bottom_right_tip[1],
-                x1=end_top_right_tip[0], y1=end_top_right_tip[1],
+                x0=start_tip[0], y0=start_tip[1],
+                x1=end_tip[0], y1=end_tip[1],
                 line=self.style
             )
         )
@@ -91,8 +86,8 @@ class Connection:
         # Determine the location for pumps or valves
         if self.conn_type in ['pump', 'valve']:
             # Calculate the positions to place the shape on the edge
-            shape_x = (start_bottom_left_tip[0] + end_top_left_tip[0]) / 2
-            shape_y = (start_bottom_left_tip[1] + end_top_left_tip[1]) / 2
+            shape_x = (start_tip[0] + end_tip[0]) / 2
+            shape_y = (start_tip[1] + end_tip[1]) / 2
 
             # Add the appropriate shape
             if self.conn_type == 'valve':
@@ -113,6 +108,9 @@ class GraphVisualizer:
         self.linked_list = linked_list
         self.shapes = []
         self.annotations = []
+        self.connections = []  # To store connections
+
+    # Inside GraphVisualizer class
 
     def create_shapes(self):
         """Convert nodes and connections to Plotly shapes."""
@@ -180,16 +178,34 @@ class GraphVisualizer:
                 )
             )
 
-        # Add connection shapes
+        # Initialize connections without setting their types
         for i in range(len(self.linked_list.nodes) - 1):
             start_node = self.linked_list.nodes[i]
             end_node = self.linked_list.nodes[i + 1]
-            conn_type = 'valve' if i == 1 else 'pump' if i == 2 else 'normal'
-            conn = Connection(start_node, end_node, conn_type=conn_type)
-            self.shapes.extend(conn.draw_connection())
+            # Add connections for both left and right sides
+            for side in ['left', 'right']:
+                conn = Connection(start_node, end_node, side=side)  # Initialize with default connection type
+                self.connections.append(conn)  # Store connection object
+
+    def change_connection_type(self, start_node_id, end_node_id, new_type, side):
+        """Change the type of a specific side connection."""
+        for conn in self.connections:
+            if conn.start_node.id == start_node_id and conn.end_node.id == end_node_id and conn.side == side:
+                conn.conn_type = new_type  # Update connection type
+                return  # Exit after finding and updating the connection
+    
+    def get_conn_types(self):
+        for conn in self.connections:
+            print(conn.conn_type)
+
+    def draw_connections(self):
+        """Draw the connections based on their current types."""
+        for conn in self.connections:
+            self.shapes.extend(conn.draw_connection())  # Use the current connection type to draw shapes
 
     def display_graph(self):
         """Render the graph using Plotly."""
+        self.draw_connections()  # Draw connections after applying changes
         layout = go.Layout(
             shapes=self.shapes,
             annotations=self.annotations,
@@ -200,15 +216,20 @@ class GraphVisualizer:
         fig = go.Figure(layout=layout)
         fig.show()
 
-# Instantiate and use the classes
-# Create nodes and doubly linked list
+# Use the classes
 linked_list = DoublyLinkedList()
 linked_list.add_node(Node('A', 2, 3, 'Start'))
 linked_list.add_node(Node('B', 2, 2, 'Process 1'))
 linked_list.add_node(Node('D', 2, 1, 'Process 2'))
 linked_list.add_node(Node('E', 2, 0, 'End'))
 
-# Visualize the graph
 visualizer = GraphVisualizer(linked_list)
 visualizer.create_shapes()
+
+# Change a specific side connection type
+visualizer.change_connection_type('A', 'B', 'pump', 'left')
+visualizer.change_connection_type('D', 'E', 'pump', 'right')
+visualizer.change_connection_type('D', 'E', 'valve', 'left')
+
+visualizer.get_conn_types()
 visualizer.display_graph()
