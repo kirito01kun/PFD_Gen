@@ -3,7 +3,8 @@ from shapes import create_pump, create_valve  # Import functions from shapes.py
 
 # Node Class
 class Node:
-    def __init__(self, node_id, x, y, label, size=0.2):
+    def __init__(self, node_id, x, y, label, size=0.2, 
+                 top_left_label='', top_right_label='', bottom_right_label='', bottom_left_label=''):
         self.id = node_id
         self.x = x
         self.y = y
@@ -12,6 +13,10 @@ class Node:
         self.prev_node = None
         self.next_node = None
         self.arrow_positions = self.get_arrow_positions()
+        self.top_left_label = top_left_label
+        self.top_right_label = top_right_label
+        self.bottom_right_label = bottom_right_label
+        self.bottom_left_label = bottom_left_label
 
     def get_arrow_positions(self):
         """Calculate the positions of arrow tips around the node."""
@@ -28,6 +33,7 @@ class Node:
         """Connect this node to the next node in the list."""
         self.next_node = next_node
         next_node.prev_node = self
+
 
 # DoublyLinkedList Class
 class DoublyLinkedList:
