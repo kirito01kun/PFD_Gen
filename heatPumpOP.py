@@ -53,19 +53,18 @@ class DoublyLinkedList:
                 return node
         return None
 
-# Connection Class
 class Connection:
     def __init__(self, start_node, end_node, conn_type='normal'):
         self.start_node = start_node
         self.end_node = end_node
-        self.conn_type = conn_type
-        self.style = dict(color='black', width=2)  # Default style
+        self.conn_type = conn_type  # Type of connection: 'normal', 'pump', 'valve'
+        self.style = dict(color='black', width=2)  # Default style for normal lines
 
     def draw_connection(self):
-        """Create line shapes for connecting edges."""
+        """Create shapes for connecting edges based on connection type."""
         line_shapes = []
 
-        # Start and end arrow positions
+        # Get arrow positions around nodes
         start_bottom_left_tip, start_bottom_right_tip = self.start_node.arrow_positions[2], self.start_node.arrow_positions[3]
         end_top_left_tip, end_top_right_tip = self.end_node.arrow_positions[0], self.end_node.arrow_positions[1]
 
@@ -89,7 +88,24 @@ class Connection:
             )
         )
 
+        # Determine the location for pumps or valves
+        if self.conn_type in ['pump', 'valve']:
+            # Calculate the positions to place the shape on the edge
+            shape_x = (start_bottom_left_tip[0] + end_top_left_tip[0]) / 2
+            shape_y = (start_bottom_left_tip[1] + end_top_left_tip[1]) / 2
+
+            # Add the appropriate shape
+            if self.conn_type == 'valve':
+                valve_shape = create_valve(shape_x, shape_y, 0.05)  # Adjust the size as needed
+                line_shapes.extend(valve_shape)
+
+            elif self.conn_type == 'pump':
+                direction = 'up' if self.start_node.y > self.end_node.y else 'down'
+                pump_shape = create_pump(shape_x, shape_y, 0.05, direction)  # Adjust the size as needed
+                line_shapes.extend(pump_shape)
+
         return line_shapes
+
 
 # GraphVisualizer Class
 class GraphVisualizer:
@@ -139,7 +155,7 @@ class GraphVisualizer:
             )
             self.annotations.append(
                 dict(
-                    x=top_right_tip[0] - 0.004, y=top_right_tip[1],
+                    x=top_right_tip[0], y=top_right_tip[1],
                     ax=node.x + node.size, ay=node.y + node.size / 2,
                     xref='x', yref='y', axref='x', ayref='y',
                     showarrow=True, arrowhead=1, arrowwidth=3, arrowcolor='black'
@@ -157,7 +173,7 @@ class GraphVisualizer:
             )
             self.annotations.append(
                 dict(
-                    x=node.x + node.size , y=bottom_right_tip[1],
+                    x=node.x + node.size, y=bottom_right_tip[1],
                     ax=bottom_right_tip[0], ay=node.y - node.size / 2,
                     xref='x', yref='y', axref='x', ayref='y',
                     showarrow=True, arrowhead=1, arrowwidth=3, arrowcolor='black'
@@ -168,7 +184,8 @@ class GraphVisualizer:
         for i in range(len(self.linked_list.nodes) - 1):
             start_node = self.linked_list.nodes[i]
             end_node = self.linked_list.nodes[i + 1]
-            conn = Connection(start_node, end_node)
+            conn_type = 'valve' if i == 1 else 'pump' if i == 2 else 'normal'
+            conn = Connection(start_node, end_node, conn_type=conn_type)
             self.shapes.extend(conn.draw_connection())
 
     def display_graph(self):
