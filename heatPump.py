@@ -4,7 +4,7 @@ from shapes import create_pump, create_valve  # Import functions from shapes.py
 # Node Class
 class Node:
     def __init__(self, node_id, x, y, label, size=0.2, 
-                 top_left_label='', top_right_label='', bottom_right_label='', bottom_left_label=''):
+                 top_left_label='C', top_right_label='C', bottom_right_label='C', bottom_left_label='C'):
         self.id = node_id
         self.x = x
         self.y = y
@@ -184,6 +184,48 @@ class GraphVisualizer:
                 )
             )
 
+            # Create arrow labels
+            self.annotations.append(
+                dict(
+                    x=(top_left_tip[0] + (node.x - node.size)) / 2,
+                    y=(top_left_tip[1] + (node.y + node.size / 2)) / 2 + 0.05,
+                    text=node.top_left_label,
+                    showarrow=False,
+                    font=dict(color='black', size=12),
+                    xref='x', yref='y'
+                )
+            )
+            self.annotations.append(
+                dict(
+                    x=(top_right_tip[0] + (node.x + node.size)) / 2,
+                    y=(top_right_tip[1] + (node.y + node.size / 2)) / 2 + 0.05,
+                    text=node.top_right_label,
+                    showarrow=False,
+                    font=dict(color='black', size=12),
+                    xref='x', yref='y'
+                )
+            )
+            self.annotations.append(
+                dict(
+                    x=(bottom_left_tip[0] + (node.x - node.size)) / 2,
+                    y=(bottom_left_tip[1] + (node.y - node.size / 2)) / 2 - 0.05,
+                    text=node.bottom_left_label,
+                    showarrow=False,
+                    font=dict(color='black', size=12),
+                    xref='x', yref='y'
+                )
+            )
+            self.annotations.append(
+                dict(
+                    x=(bottom_right_tip[0] + (node.x + node.size)) / 2,
+                    y=(bottom_right_tip[1] + (node.y - node.size / 2)) / 2 - 0.05,
+                    text=node.bottom_right_label,
+                    showarrow=False,
+                    font=dict(color='black', size=12),
+                    xref='x', yref='y'
+                )
+            )
+
         # Initialize connections without setting their types
         for i in range(len(self.linked_list.nodes) - 1):
             start_node = self.linked_list.nodes[i]
@@ -224,18 +266,16 @@ class GraphVisualizer:
 
 # Use the classes
 linked_list = DoublyLinkedList()
-linked_list.add_node(Node('A', 2, 3, 'Start'))
-linked_list.add_node(Node('B', 2, 2, 'Process 1'))
-linked_list.add_node(Node('D', 2, 1, 'Process 2'))
-linked_list.add_node(Node('E', 2, 0, 'End'))
+linked_list.add_node(Node('A', 2, 2, 'Condensor', 0.2, '101 C', '105 C', '149 C', '110 C'))
+linked_list.add_node(Node('B', 2, 1, 'Evaporator', 0.2, '59 C', '59 C', "70 C", '60 C'))
+linked_list.add_node(Node('C', 2, 0, 'TropicHeat', 0.2, '60 C', '70 C', "73 C", '66 C'))
 
 visualizer = GraphVisualizer(linked_list)
 visualizer.create_shapes()
 
 # Change a specific side connection type
-visualizer.change_connection_type('A', 'B', 'pump', 'left')
-visualizer.change_connection_type('D', 'E', 'pump', 'right')
-visualizer.change_connection_type('D', 'E', 'valve', 'left')
+visualizer.change_connection_type('A', 'B', 'valve', 'left')
+visualizer.change_connection_type('A', 'B', 'pump', 'right')
 
 visualizer.get_conn_types()
 visualizer.display_graph()
