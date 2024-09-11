@@ -3,8 +3,7 @@ from shapes import create_pump, create_valve  # Import functions from shapes.py
 
 # Node Class
 class Node:
-    def __init__(self, node_id, x, y, label, 
-                 top_left_label='C', top_right_label='C', bottom_right_label='C', bottom_left_label='C'):
+    def __init__(self, node_id, x, y, label, temperatures):
         self.id = node_id
         self.x = x
         self.y = y
@@ -13,10 +12,10 @@ class Node:
         self.prev_node = None
         self.next_node = None
         self.arrow_positions = self.get_arrow_positions()
-        self.top_left_label = top_left_label
-        self.top_right_label = top_right_label
-        self.bottom_right_label = bottom_right_label
-        self.bottom_left_label = bottom_left_label
+        self.top_left_label = temperatures[0] # Top In
+        self.top_right_label = temperatures[1] # Top Out
+        self.bottom_right_label = temperatures[2] # Buttom In
+        self.bottom_left_label = temperatures[3] # Buttom Out
 
     def get_arrow_positions(self):
         """Calculate the positions of arrow tips around the node."""
@@ -313,9 +312,6 @@ class GraphVisualizer:
         # Calculate the graph bounds
         min_x, max_x, min_y, max_y = self.calculate_graph_bounds()
 
-        # Calculate the center of the graph
-        center_x = (min_x + max_x) / 2
-        center_y = (min_y + max_y) / 2
 
         # Define the width and height based on the bounds
         width = max_x - min_x
@@ -351,11 +347,16 @@ class GraphVisualizer:
         print(f"Graph saved as {file_name}")
 
 
+
+temp_values = [[101, 105, 149, 110],
+               [59, 59, 70, 60],
+               [60, 70, 73, 66]]
+
 # Use the classes
 heatPumpNetwork = DoublyLinkedList()
-heatPumpNetwork.add_node(Node('A', 2, 2, 'Condensor', '101 °C', '105 °°C', '149 °C', '110 °C'))
-heatPumpNetwork.add_node(Node('B', 2, 1, 'Evaporator', '59 °C', '59 °C', "70 °C", '60 °C'))
-heatPumpNetwork.add_node(Node('C', 2, 0, 'TropiCHeat', '60 °C', '70 °C', "73 °C", '66 °C'))
+heatPumpNetwork.add_node(Node('A', 2, 2, 'Condensor', temp_values[0]))
+heatPumpNetwork.add_node(Node('B', 2, 1, 'Evaporator', temp_values[1]))
+heatPumpNetwork.add_node(Node('C', 2, 0, 'TropiCHeat', temp_values[2]))
 
 
 visualizer = GraphVisualizer(heatPumpNetwork)
@@ -364,6 +365,7 @@ visualizer.create_shapes()
 # Change a specific side connection type
 visualizer.change_connection_type('A', 'B', 'valve', 'left')
 visualizer.change_connection_type('A', 'B', 'pump', 'right', 'COP: 3.04')
+
 visualizer.save_graph('my_graph.svg')
 
 visualizer.get_conn_types()
