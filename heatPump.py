@@ -12,10 +12,10 @@ class Node:
         self.prev_node = None
         self.next_node = None
         self.arrow_positions = self.get_arrow_positions()
-        self.top_left_label = temperatures[0] # Top In
-        self.top_right_label = temperatures[1] # Top Out
-        self.bottom_right_label = temperatures[2] # Buttom In
-        self.bottom_left_label = temperatures[3] # Buttom Out
+        self.top_left_label = str(temperatures[0]) + ' °C' # Top In
+        self.top_right_label = str(temperatures[1]) + ' °C' # Top Out
+        self.bottom_right_label = str(temperatures[2]) + ' °C' # Buttom In
+        self.bottom_left_label = str(temperatures[3]) + ' °C' # Buttom Out
 
     def get_arrow_positions(self):
         """Calculate the positions of arrow tips around the node."""
