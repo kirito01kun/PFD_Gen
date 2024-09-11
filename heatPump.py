@@ -3,13 +3,13 @@ from shapes import create_pump, create_valve  # Import functions from shapes.py
 
 # Node Class
 class Node:
-    def __init__(self, node_id, x, y, label, size=0.2, 
+    def __init__(self, node_id, x, y, label, 
                  top_left_label='C', top_right_label='C', bottom_right_label='C', bottom_left_label='C'):
         self.id = node_id
         self.x = x
         self.y = y
         self.label = label
-        self.size = size
+        self.size = 0.2
         self.prev_node = None
         self.next_node = None
         self.arrow_positions = self.get_arrow_positions()
@@ -75,19 +75,27 @@ class Connection:
         if self.side == 'left':
             start_tip = self.start_node.arrow_positions[2]  # bottom left tip
             end_tip = self.end_node.arrow_positions[0]  # top left tip
+            line_shapes.append(
+                dict(
+                    type='line',
+                    x0=start_tip[0], y0=start_tip[1],
+                    x1=end_tip[0] + 0.004, y1=end_tip[1],
+                    line=self.style
+                )
+            )
+
         else:
             start_tip = self.start_node.arrow_positions[3]  # bottom right tip
             end_tip = self.end_node.arrow_positions[1]  # top right tip
-
-        # Connect the chosen arrow tip of the start node to the end node
-        line_shapes.append(
-            dict(
-                type='line',
-                x0=start_tip[0], y0=start_tip[1],
-                x1=end_tip[0], y1=end_tip[1],
-                line=self.style
+            # Connect the chosen arrow tip of the start node to the end node
+            line_shapes.append(
+                dict(
+                    type='line',
+                    x0=start_tip[0] - 0.004, y0=start_tip[1],
+                    x1=end_tip[0], y1=end_tip[1],
+                    line=self.style
+                )
             )
-        )
 
         # Determine the location for pumps or valves
         if self.conn_type in ['pump', 'valve']:
@@ -110,8 +118,8 @@ class Connection:
 
 # GraphVisualizer Class
 class GraphVisualizer:
-    def __init__(self, linked_list):
-        self.linked_list = linked_list
+    def __init__(self, heatPumpNetwork):
+        self.heatPumpNetwork = heatPumpNetwork
         self.shapes = []
         self.annotations = []
         self.connections = []  # To store connections
@@ -121,7 +129,7 @@ class GraphVisualizer:
     def create_shapes(self):
         """Convert nodes and connections to Plotly shapes."""
         # Add node shapes and annotations
-        for node in self.linked_list.nodes:
+        for node in self.heatPumpNetwork.nodes:
             # Create node shape
             self.shapes.append(
                 dict(
@@ -160,7 +168,7 @@ class GraphVisualizer:
             self.annotations.append(
                 dict(
                     x=top_right_tip[0], y=top_right_tip[1],
-                    ax=node.x + node.size, ay=node.y + node.size / 2,
+                    ax=node.x + node.size - 0.004, ay=node.y + node.size / 2,
                     xref='x', yref='y', axref='x', ayref='y',
                     showarrow=True, arrowhead=1, arrowwidth=3, arrowcolor='black'
                 )
@@ -170,7 +178,7 @@ class GraphVisualizer:
             self.annotations.append(
                 dict(
                     x=bottom_left_tip[0], y=bottom_left_tip[1],
-                    ax=node.x - node.size, ay=node.y - node.size / 2,
+                    ax=node.x - node.size + 0.004, ay=node.y - node.size / 2,
                     xref='x', yref='y', axref='x', ayref='y',
                     showarrow=True, arrowhead=1, arrowwidth=3, arrowcolor='black'
                 )
@@ -227,9 +235,9 @@ class GraphVisualizer:
             )
 
         # Initialize connections without setting their types
-        for i in range(len(self.linked_list.nodes) - 1):
-            start_node = self.linked_list.nodes[i]
-            end_node = self.linked_list.nodes[i + 1]
+        for i in range(len(self.heatPumpNetwork.nodes) - 1):
+            start_node = self.heatPumpNetwork.nodes[i]
+            end_node = self.heatPumpNetwork.nodes[i + 1]
             # Add connections for both left and right sides
             for side in ['left', 'right']:
                 conn = Connection(start_node, end_node, side=side)  # Initialize with default connection type
@@ -263,19 +271,96 @@ class GraphVisualizer:
         )
         fig = go.Figure(layout=layout)
         fig.show()
+    
+
+    def calculate_graph_bounds(self):
+        """Calculate the boundaries of the graph for centering and zooming."""
+        x_coords = []
+        y_coords = []
+
+        # Collect x and y coordinates of all nodes
+        for node in self.heatPumpNetwork.nodes:
+            x_coords.append(node.x)
+            y_coords.append(node.y)
+
+        # Collect x and y coordinates of all annotations
+        for annotation in self.annotations:
+            if 'x' in annotation:
+                x_coords.append(annotation['x'])
+            if 'y' in annotation:
+                y_coords.append(annotation['y'])
+
+        # Calculate the minimum and maximum coordinates
+        min_x = min(x_coords)
+        max_x = max(x_coords)
+        min_y = min(y_coords)
+        max_y = max(y_coords)
+
+        return min_x, max_x, min_y, max_y
+
+    def save_graph(self, file_name):
+        """Save the graph as an image."""
+        # Draw connections first to ensure all elements are considered
+        self.draw_connections()
+
+        # Calculate the graph bounds
+        min_x, max_x, min_y, max_y = self.calculate_graph_bounds()
+
+        # Calculate the center of the graph
+        center_x = (min_x + max_x) / 2
+        center_y = (min_y + max_y) / 2
+
+        # Define the width and height based on the bounds
+        width = max_x - min_x
+        height = max_y - min_y
+
+        # Set the layout
+        layout = go.Layout(
+            shapes=self.shapes,
+            annotations=self.annotations,
+            xaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                visible=False,
+                range=[min_x - 0.1 * width, max_x + 0.1 * width]  # add margins
+            ),
+            yaxis=dict(
+                showgrid=False,
+                zeroline=False,
+                visible=False,
+                range=[min_y - 0.1 * height, max_y + 0.1 * height]  # add margins
+            ),
+            width=800,  # Set a fixed width for the saved image
+            height=800 * (height / 1.5*width),  # Maintain aspect ratio
+            showlegend=False,
+        )
+
+        # Create figure
+        fig = go.Figure(layout=layout)
+
+        # Save the image using kaleido
+        fig.write_image(file_name)
+
+        print(f"Graph saved as {file_name}")
+
 
 # Use the classes
-linked_list = DoublyLinkedList()
-linked_list.add_node(Node('A', 2, 2, 'Condensor', 0.2, '101 C', '105 C', '149 C', '110 C'))
-linked_list.add_node(Node('B', 2, 1, 'Evaporator', 0.2, '59 C', '59 C', "70 C", '60 C'))
-linked_list.add_node(Node('C', 2, 0, 'TropicHeat', 0.2, '60 C', '70 C', "73 C", '66 C'))
+heatPumpNetwork = DoublyLinkedList()
+# heatPumpNetwork.add_node(Node('A', 2, 2, 'Condensor', '101 C', '105 C', '149 C', '110 C'))
+# heatPumpNetwork.add_node(Node('B', 2, 1, 'Evaporator', '59 C', '59 C', "70 C", '60 C'))
+# heatPumpNetwork.add_node(Node('C', 2, 0, 'TropicHeat', '60 C', '70 C', "73 C", '66 C'))
 
-visualizer = GraphVisualizer(linked_list)
+for i in range(4):
+    heatPumpNetwork.add_node(Node(str(i), 2, 4 - i, 'Evaporator', '59 C', '59 C', "70 C", '60 C'))
+
+visualizer = GraphVisualizer(heatPumpNetwork)
 visualizer.create_shapes()
 
 # Change a specific side connection type
-visualizer.change_connection_type('A', 'B', 'valve', 'left')
-visualizer.change_connection_type('A', 'B', 'pump', 'right')
+visualizer.change_connection_type('2', '3', 'valve', 'left')
+visualizer.change_connection_type('2', '3', 'pump', 'right')
+visualizer.save_graph('my_graph.svg')
 
 visualizer.get_conn_types()
-visualizer.display_graph()
+# visualizer.display_graph()
+
