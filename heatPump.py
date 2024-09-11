@@ -60,16 +60,18 @@ class DoublyLinkedList:
         return None
 
 class Connection:
-    def __init__(self, start_node, end_node, conn_type='normal', side='left'):
+    def __init__(self, start_node, end_node, conn_type='normal', side='left', conn_label=''):
         self.start_node = start_node
         self.end_node = end_node
         self.conn_type = conn_type  # Type of connection: 'normal', 'pump', 'valve'
+        self.conn_label = conn_label
         self.side = side  # Side of the connection: 'left' or 'right'
         self.style = dict(color='black', width=2)  # Default style for normal lines
 
     def draw_connection(self):
         """Create shapes for connecting edges based on connection type and side."""
         line_shapes = []
+        annotations = []
 
         # Get arrow positions around nodes
         if self.side == 'left':
@@ -110,10 +112,12 @@ class Connection:
 
             elif self.conn_type == 'pump':
                 direction = 'up' if self.start_node.y > self.end_node.y else 'down'
-                pump_shape = create_pump(shape_x, shape_y, 0.05, direction)  # Adjust the size as needed
+                pump_shape, pump_label = create_pump(shape_x, shape_y, 0.05, direction, self.conn_label)  # Adjust the size as needed
                 line_shapes.extend(pump_shape)
+                annotations.append(pump_label)
+        
 
-        return line_shapes
+        return line_shapes, annotations
 
 
 # GraphVisualizer Class
@@ -139,7 +143,7 @@ class GraphVisualizer:
                     x1=node.x + node.size,
                     y1=node.y + node.size,
                     line=dict(color='DarkSlateGrey', width=2),
-                    fillcolor='LightSkyBlue'
+                    fillcolor='LightGreen'
                 )
             )
 
@@ -150,7 +154,7 @@ class GraphVisualizer:
                     y=node.y,
                     text=node.label,
                     showarrow=False,
-                    font=dict(color='black', size=14)
+                    font=dict(color='black', size=15)
                 )
             )
 
@@ -243,11 +247,12 @@ class GraphVisualizer:
                 conn = Connection(start_node, end_node, side=side)  # Initialize with default connection type
                 self.connections.append(conn)  # Store connection object
 
-    def change_connection_type(self, start_node_id, end_node_id, new_type, side):
+    def change_connection_type(self, start_node_id, end_node_id, new_type, side, label=''):
         """Change the type of a specific side connection."""
         for conn in self.connections:
             if conn.start_node.id == start_node_id and conn.end_node.id == end_node_id and conn.side == side:
                 conn.conn_type = new_type  # Update connection type
+                conn.conn_label = label
                 return  # Exit after finding and updating the connection
     
     def get_conn_types(self):
@@ -257,7 +262,9 @@ class GraphVisualizer:
     def draw_connections(self):
         """Draw the connections based on their current types."""
         for conn in self.connections:
-            self.shapes.extend(conn.draw_connection())  # Use the current connection type to draw shapes
+            shapes, annotations = conn.draw_connection()  # Get shapes and annotations for the connection
+            self.shapes.extend(shapes)  # Add shapes to the shapes list
+            self.annotations.extend(annotations)  # Add annotations to the annotations list
 
     def display_graph(self):
         """Render the graph using Plotly."""
@@ -346,21 +353,18 @@ class GraphVisualizer:
 
 # Use the classes
 heatPumpNetwork = DoublyLinkedList()
-# heatPumpNetwork.add_node(Node('A', 2, 2, 'Condensor', '101 C', '105 C', '149 C', '110 C'))
-# heatPumpNetwork.add_node(Node('B', 2, 1, 'Evaporator', '59 C', '59 C', "70 C", '60 C'))
-# heatPumpNetwork.add_node(Node('C', 2, 0, 'TropicHeat', '60 C', '70 C', "73 C", '66 C'))
+heatPumpNetwork.add_node(Node('A', 2, 2, 'Condensor', '101 °C', '105 °°C', '149 °C', '110 °C'))
+heatPumpNetwork.add_node(Node('B', 2, 1, 'Evaporator', '59 °C', '59 °C', "70 °C", '60 °C'))
+heatPumpNetwork.add_node(Node('C', 2, 0, 'TropiCHeat', '60 °C', '70 °C', "73 °C", '66 °C'))
 
-for i in range(4):
-    heatPumpNetwork.add_node(Node(str(i), 2, 4 - i, 'Evaporator', '59 C', '59 C', "70 C", '60 C'))
 
 visualizer = GraphVisualizer(heatPumpNetwork)
 visualizer.create_shapes()
 
 # Change a specific side connection type
-visualizer.change_connection_type('2', '3', 'valve', 'left')
-visualizer.change_connection_type('2', '3', 'pump', 'right')
+visualizer.change_connection_type('A', 'B', 'valve', 'left')
+visualizer.change_connection_type('A', 'B', 'pump', 'right', 'COP: 3.04')
 visualizer.save_graph('my_graph.svg')
 
 visualizer.get_conn_types()
-# visualizer.display_graph()
-
+visualizer.display_graph()
